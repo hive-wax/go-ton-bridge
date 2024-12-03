@@ -26,7 +26,7 @@ func generateMessageInCell(
 
 	signsCell := cell.BeginCell()
 	for i := 0; i < len(signs); i++ {
-		signsCell = signsCell.MustStoreRef(cell.BeginCell().MustStoreUInt(signs[i].V, 8).MustStoreBigUInt(signs[i].R, 256))
+		signsCell = signsCell.MustStoreRef(cell.BeginCell().MustStoreUInt(signs[i].V, 8).MustStoreBigUInt(signs[i].R, 256).MustStoreBigUInt(signs[i].S, 256))
 	}
 
 	return cell.BeginCell().
