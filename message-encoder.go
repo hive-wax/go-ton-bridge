@@ -1,21 +1,11 @@
 package tonbridge
 
 import (
-	"encoding/hex"
 	"fmt"
 	"github.com/xssnick/tonutils-go/tvm/cell"
 )
 
-func EncodeMessage(hexData string) (*cell.Cell, error) {
-	if len(hexData) < 2 || hexData[:2] != "0x" {
-		return nil, fmt.Errorf("hex data must start with 0x")
-	}
-
-	data, err := hex.DecodeString(hexData[2:])
-	if err != nil {
-		return nil, fmt.Errorf("invalid hex data: %w", err)
-	}
-
+func EncodeMessage(data []byte) (*cell.Cell, error) {
 	if len(data) < 64 {
 		return nil, fmt.Errorf("data too short, minimum 64 bytes required")
 	}
@@ -23,7 +13,7 @@ func EncodeMessage(hexData string) (*cell.Cell, error) {
 	// Extract metadata and data positions
 	offset := data[:32]
 	length := data[32:64]
-	pos := 64
+	pos := uint(64)
 
 	// Build metadata cell
 	metadataCell := cell.BeginCell().
@@ -36,15 +26,15 @@ func EncodeMessage(hexData string) (*cell.Cell, error) {
 	pos++
 	relay := data[pos]
 	pos++
-	tokenLen := data[pos]
+	tokenLen := uint(data[pos])
 	pos++
-	mosLen := data[pos]
+	mosLen := uint(data[pos])
 	pos++
-	fromLen := data[pos]
+	fromLen := uint(data[pos])
 	pos++
-	toLen := data[pos]
+	toLen := uint(data[pos])
 	pos++
-	payloadLen := uint16(data[pos])<<8 | uint16(data[pos+1])
+	payloadLen := uint(data[pos])<<8 | uint(data[pos+1])
 	pos += 2
 
 	// Read reserved and token amount
@@ -54,15 +44,15 @@ func EncodeMessage(hexData string) (*cell.Cell, error) {
 	pos += 16
 
 	// Read addresses
-	tokenAddr := data[pos : pos+int(tokenLen)]
-	pos += int(tokenLen)
-	mosTarget := data[pos : pos+int(mosLen)]
-	pos += int(mosLen)
-	fromAddr := data[pos : pos+int(fromLen)]
-	pos += int(fromLen)
-	toAddr := data[pos : pos+int(toLen)]
-	pos += int(toLen)
-	payload := data[pos : pos+int(payloadLen)]
+	tokenAddr := data[pos : pos+tokenLen]
+	pos += tokenLen
+	mosTarget := data[pos : pos+mosLen]
+	pos += mosLen
+	fromAddr := data[pos : pos+fromLen]
+	pos += fromLen
+	toAddr := data[pos : pos+toLen]
+	pos += toLen
+	payload := data[pos : pos+payloadLen]
 
 	// Build header cell
 	headerCell := cell.BeginCell().

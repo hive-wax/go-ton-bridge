@@ -29,6 +29,11 @@ func generateMessageInCell(
 		signsCell = signsCell.MustStoreRef(cell.BeginCell().MustStoreUInt(signs[i].V, 8).MustStoreBigUInt(signs[i].R, 256).MustStoreBigUInt(signs[i].S, 256).EndCell())
 	}
 
+	msg, err := EncodeMessage(message)
+	if err != nil {
+		return nil, err
+	}
+
 	return cell.BeginCell().
 		MustStoreUInt(0xd5f86120, 32).
 		MustStoreUInt(0, 64).
@@ -51,7 +56,7 @@ func generateMessageInCell(
 						MustStoreBigUInt(topics[1].Big(), 256).
 						MustStoreBigUInt(topics[2].Big(), 256).
 						EndCell()).
-				MustStoreSlice(message, uint(len(message))).
+				MustStoreRef(msg).
 				EndCell(),
 		).EndCell(), nil
 
