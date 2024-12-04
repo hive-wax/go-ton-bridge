@@ -79,9 +79,10 @@ func EncodeMessage(data []byte) (*cell.Cell, error) {
 		EndCell()
 
 	// Build payload cell
-	payloadCell := cell.BeginCell().
-		MustStoreSlice(payload, uint(len(payload))*8).
-		EndCell()
+	payloadCell, err := EncodeMessage(payload)
+	if err != nil {
+		return nil, err
+	}
 
 	// Link all cells together
 	metadataAndHeader := cell.BeginCell().
