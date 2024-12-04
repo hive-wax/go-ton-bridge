@@ -79,7 +79,7 @@ func EncodeMessage(data []byte) (*cell.Cell, error) {
 		EndCell()
 
 	// Build payload cell
-	payloadCell, err := EncodeMessage(payload)
+	payloadCell, err := EncodePayload(payload)
 	if err != nil {
 		return nil, err
 	}

@@ -1,7 +1,6 @@
 package tonbridge
 
 import (
-	"errors"
 	"fmt"
 	"math"
 	"strings"
@@ -10,51 +9,46 @@ import (
 )
 
 const (
-	maxBits     = 1016
-	maxHexChars = 1016 / 4
+	maxBits         = 1016
+	maxBytesPerCell = maxBits / 8 // ~127 bytes
 )
 
-func hexToBinary(hexStr string) string {
+func bytesToBinary(data []byte) string {
 	var binary strings.Builder
-	for _, ch := range hexStr {
-		val := 0
-		if ch >= '0' && ch <= '9' {
-			val = int(ch - '0')
-		} else {
-			val = int(ch-'a') + 10
-		}
-		binary.WriteString(strings.Repeat("0", 4-len(fmt.Sprintf("%b", val))))
-		binary.WriteString(fmt.Sprintf("%b", val))
+	for _, b := range data {
+		binary.WriteString(fmt.Sprintf("%08b", b))
 	}
 	return binary.String()
 }
 
-func binaryToHex(binary string) string {
-	var hex strings.Builder
-	for i := 0; i < len(binary); i += 4 {
-		end := i + 4
+func binaryToBytes(binary string) []byte {
+	// Pad binary string to multiple of 8
+	padding := len(binary) % 8
+	if padding != 0 {
+		binary = binary + strings.Repeat("0", 8-padding)
+	}
+
+	result := make([]byte, len(binary)/8)
+	for i := 0; i < len(binary); i += 8 {
+		end := i + 8
 		if end > len(binary) {
 			end = len(binary)
 		}
 		chunk := binary[i:end]
-		val := 0
+
+		var val byte
 		for j, bit := range chunk {
 			if bit == '1' {
-				val |= 1 << (3 - j)
+				val |= 1 << (7 - j)
 			}
 		}
-		hex.WriteString(fmt.Sprintf("%x", val))
+		result[i/8] = val
 	}
-	return hex.String()
+	return result
 }
 
-func EncodePayload(hexData string) (*cell.Cell, error) {
-	if !strings.HasPrefix(hexData, "0x") {
-		return nil, errors.New("hex data must start with 0x")
-	}
-
-	cleanHex := strings.ToLower(hexData[2:])
-	binaryStr := hexToBinary(cleanHex)
+func EncodePayload(data []byte) (*cell.Cell, error) {
+	binaryStr := bytesToBinary(data)
 
 	var cells []*cell.Builder
 	position := 0
@@ -88,7 +82,7 @@ func EncodePayload(hexData string) (*cell.Cell, error) {
 	return lastCell, nil
 }
 
-func DecodePayload(rootCell *cell.Cell) (string, error) {
+func DecodePayload(rootCell *cell.Cell) ([]byte, error) {
 	var binaryResult strings.Builder
 	currentCell := rootCell
 
@@ -98,7 +92,7 @@ func DecodePayload(rootCell *cell.Cell) (string, error) {
 		for slice.BitsLeft() > 0 {
 			bit, err := slice.LoadBoolBit()
 			if err != nil {
-				return "", fmt.Errorf("error loading bit: %w", err)
+				return nil, fmt.Errorf("error loading bit: %w", err)
 			}
 			if bit {
 				binaryResult.WriteString("1")
@@ -113,18 +107,14 @@ func DecodePayload(rootCell *cell.Cell) (string, error) {
 
 		nextCell, err := slice.LoadRefCell()
 		if err != nil {
-			return "", fmt.Errorf("error loading next cell: %w", err)
+			return nil, fmt.Errorf("error loading next cell: %w", err)
 		}
 		currentCell = nextCell
 	}
 
-	return "0x" + binaryToHex(binaryResult.String()), nil
+	return binaryToBytes(binaryResult.String()), nil
 }
 
-func CalculateCellCount(hexData string) int {
-	cleanHex := hexData
-	if strings.HasPrefix(hexData, "0x") {
-		cleanHex = hexData[2:]
-	}
-	return int(math.Ceil(float64(len(cleanHex)) / 254))
+func CalculateCellCount(data []byte) int {
+	return int(math.Ceil(float64(len(data)) / float64(maxBytesPerCell)))
 }
