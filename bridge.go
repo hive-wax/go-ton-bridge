@@ -14,6 +14,7 @@ type Signature struct {
 
 func generateMessageInCell(
 	hash common.Hash,
+	expectedAddress common.Address,
 	signs []*Signature,
 	receiptRoot common.Hash,
 	version common.Hash,
@@ -38,6 +39,7 @@ func generateMessageInCell(
 		MustStoreUInt(0xd5f86120, 32).
 		MustStoreUInt(0, 64).
 		MustStoreBigUInt(hash.Big(), 256).
+		MustStoreBigUInt(expectedAddress.Big(), 160).
 		MustStoreUInt(uint64(len(signs)), 8).
 		MustStoreRef(signsCell.EndCell()).
 		MustStoreRef(
